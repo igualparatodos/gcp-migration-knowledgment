@@ -34,7 +34,19 @@
 
 ## Migration Steps
 
-### 1. Authenticate to GCP (DRY-RUN)
+### 1. Deploy the latest to GCP
+
+```bash
+cd cw
+cd chatwoot-igual
+git pull
+docker build -t chatwoot:igual-4.1.0 -f docker/Dockerfile .
+cd ..
+docker-compose down
+docker-compose up -d
+```
+
+### 2. Authenticate to GCP (DRY-RUN)
 
 ```bash
 # Authenticate with your Google account
@@ -48,7 +60,7 @@ gcloud auth list
 gcloud config list
 ```
 
-### 2. Stop AWS Chatwoot Instance
+### 3. Stop AWS Chatwoot Instance
 
 **CRITICAL**: Stop the AWS instance to prevent data changes during migration.
 
@@ -67,7 +79,7 @@ docker ps
 exit
 ```
 
-### 3. Connect to GCP Compute Instance (DRY-RUN)
+### 4. Connect to GCP Compute Instance (DRY-RUN)
 
 ```bash
 # SSH via IAP tunnel (no public SSH key needed)
@@ -77,7 +89,7 @@ gcloud compute ssh chatwoot \
   --tunnel-through-iap
 ```
 
-### 4. Migrate Database (RDS → CloudSQL) (DRY-RUN)
+### 5. Migrate Database (RDS → CloudSQL) (DRY-RUN)
 
 **On GCE VM:**
 
@@ -102,7 +114,7 @@ sudo /opt/chatwoot/migrate-db-rds-to-cloudsql.sh
 - If you see `pg_restore: warning: errors ignored on restore: XXX` - these are typically duplicate index warnings and are **safe to ignore**
 - If pg_dump/pg_restore commands not found: PostgreSQL 15 client tools should already be installed
 
-### 5. Migrate Storage (S3 → GCS) (DRY-RUN)
+### 6. Migrate Storage (S3 → GCS) (DRY-RUN)
 
 **On GCE VM:**
 
@@ -134,7 +146,7 @@ ps aux | grep gsutil
 **Re-run sync anytime:**
 The script is idempotent - run it multiple times for incremental updates without re-copying existing files.
 
-### 6. Verify Services (DRY-RUN)
+### 7. Verify Services (DRY-RUN)
 
 **On GCE VM:**
 
@@ -155,7 +167,7 @@ curl -I http://127.0.0.1:3000/api/v1/profile
 # Expected: HTTP/1.1 401 Unauthorized (auth required, but app is responding)
 ```
 
-### 7. Test Application via Nginx (DRY-RUN)
+### 8. Test Application via Nginx (DRY-RUN)
 
 **On GCE VM:**
 
@@ -171,7 +183,7 @@ curl -I http://34.39.149.165
 sudo tail -50 /var/log/nginx/access.log
 ```
 
-### 8. DNS Cutover (When Ready)
+### 9. DNS Cutover (When Ready)
 
 **Update DNS record at Cloudflare:**
 - Domain: `chatwoot.igual.com`
@@ -188,7 +200,7 @@ dig chatwoot.igual.com +short
 curl -I https://chatwoot.igual.com
 ```
 
-### 9. SSL Certificate (After DNS Points to GCP)
+### 10. SSL Certificate (After DNS Points to GCP)
 
 **On GCE VM:**
 
@@ -212,7 +224,7 @@ sudo certbot --nginx \
 curl -I https://chatwoot.igual.com
 ```
 
-### 10. Post-Migration Validation
+### 11. Post-Migration Validation
 
 **Functional Tests:**
 
