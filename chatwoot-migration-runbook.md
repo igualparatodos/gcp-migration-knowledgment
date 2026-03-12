@@ -34,7 +34,7 @@
 
 ## Migration Steps
 
-### 1. Authenticate to GCP
+### 1. Authenticate to GCP (DRY-RUN)
 
 ```bash
 # Authenticate with your Google account
@@ -67,7 +67,7 @@ docker ps
 exit
 ```
 
-### 3. Connect to GCP Compute Instance
+### 3. Connect to GCP Compute Instance (DRY-RUN)
 
 ```bash
 # SSH via IAP tunnel (no public SSH key needed)
@@ -77,7 +77,7 @@ gcloud compute ssh chatwoot \
   --tunnel-through-iap
 ```
 
-### 4. Migrate Database (RDS → CloudSQL)
+### 4. Migrate Database (RDS → CloudSQL) (DRY-RUN)
 
 **On GCE VM:**
 
@@ -102,7 +102,7 @@ sudo /opt/chatwoot/migrate-db-rds-to-cloudsql.sh
 - If you see `pg_restore: warning: errors ignored on restore: XXX` - these are typically duplicate index warnings and are **safe to ignore**
 - If pg_dump/pg_restore commands not found: PostgreSQL 15 client tools should already be installed
 
-### 5. Migrate Storage (S3 → GCS)
+### 5. Migrate Storage (S3 → GCS) (DRY-RUN)
 
 **On GCE VM:**
 
@@ -134,57 +134,7 @@ ps aux | grep gsutil
 **Re-run sync anytime:**
 The script is idempotent - run it multiple times for incremental updates without re-copying existing files.
 
-### 6. Verify Application Configuration
-
-**On GCE VM:**
-
-```bash
-# Check .env configuration
-cat /opt/chatwoot/.env | grep -E "ACTIVE_STORAGE|GCS|POSTGRES"
-
-# Expected output:
-# ACTIVE_STORAGE_SERVICE=google
-# GCS_BUCKET=igualparatodos-chatwoot
-# GCS_PROJECT=igual-production
-# POSTGRES_HOST=10.103.0.3
-# POSTGRES_DATABASE=chatwoot
-# POSTGRES_USERNAME=chatwoot
-```
-
-**Verify docker-compose.yaml:**
-```bash
-cat /opt/chatwoot/docker-compose.yaml
-```
-
-### 7. Deploy Latest Code
-
-**From your local machine:**
-
-```bash
-# Trigger GitHub Actions deployment workflow
-gh workflow run deploy-gce.yml \
-  --repo igualparatodos/chatwoot \
-  --ref igual-4.1.0 \
-  -f branch=igual-4.1.0
-
-# Monitor deployment
-gh run list --workflow=deploy-gce.yml \
-  --repo igualparatodos/chatwoot \
-  --limit 1
-
-# Watch deployment progress
-gh run watch <RUN_ID> --repo igualparatodos/chatwoot
-```
-
-**What this does:**
-1. Pulls latest code from `igual-4.1.0` branch
-2. Builds Docker image with GCS support
-3. Restarts all containers (rails, sidekiq, redis)
-4. Verifies application is running
-
-**Expected duration:** ~3-4 minutes
-
-### 8. Verify Services
+### 6. Verify Services (DRY-RUN)
 
 **On GCE VM:**
 
@@ -205,7 +155,7 @@ curl -I http://127.0.0.1:3000/api/v1/profile
 # Expected: HTTP/1.1 401 Unauthorized (auth required, but app is responding)
 ```
 
-### 9. Test Application via Nginx
+### 7. Test Application via Nginx (DRY-RUN)
 
 **On GCE VM:**
 
@@ -221,9 +171,9 @@ curl -I http://34.39.149.165
 sudo tail -50 /var/log/nginx/access.log
 ```
 
-### 10. DNS Cutover (When Ready)
+### 8. DNS Cutover (When Ready)
 
-**Update DNS record:**
+**Update DNS record at Cloudflare:**
 - Domain: `chatwoot.igual.com`
 - Type: A
 - Value: `34.39.149.165` (GCE external IP)
@@ -238,7 +188,7 @@ dig chatwoot.igual.com +short
 curl -I https://chatwoot.igual.com
 ```
 
-### 11. SSL Certificate (After DNS Points to GCP)
+### 9. SSL Certificate (After DNS Points to GCP)
 
 **On GCE VM:**
 
@@ -262,7 +212,7 @@ sudo certbot --nginx \
 curl -I https://chatwoot.igual.com
 ```
 
-### 12. Post-Migration Validation
+### 10. Post-Migration Validation
 
 **Functional Tests:**
 
@@ -285,15 +235,6 @@ sudo docker compose exec rails bundle exec rails c
 # > Conversation.count
 # > Message.count
 # Expected: Should show migrated data counts
-```
-
-**Monitor Logs:**
-```bash
-# On GCE VM - watch for errors
-sudo docker compose logs -f rails sidekiq
-
-# Check for GCS access
-sudo docker compose logs rails | grep -i "google\|storage\|gcs"
 ```
 
 ---
@@ -365,10 +306,10 @@ sudo /opt/chatwoot/sync-s3-to-gcs.sh
 |-------|----------|---------------------|
 | Stop AWS Instance | 2 min | - |
 | Database Migration | 30-60 min | No |
-| Storage Migration | 3-5 hrs | No (but can start while DB running) |
+| Storage Migration | 3-5 hrs | Yes (can start while DB is running) |
 | Deploy Code | 3-4 min | After DB done |
 | Verify & Test | 15-30 min | - |
-| DNS Cutover | 5-15 min (propagation) | - |
+| DNS Cutover (Cloudflare) | 5-15 min (propagation) | - |
 | SSL Setup | 5 min | After DNS |
 | **Total** | **4-6 hours** | - |
 
