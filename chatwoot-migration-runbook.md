@@ -240,7 +240,10 @@ sudo certbot --nginx \
 curl -I https://chatwoot.igual.com
 ```
 
-### 11. Post-Migration Validation
+### 11. Enable Lambda
+https://sa-east-1.console.aws.amazon.com/lambda/home?region=sa-east-1#/functions/n8n-waha-messages-prod?subtab=triggers&tab=configure
+
+### 13. Post-Migration Validation
 
 **Functional Tests:**
 
