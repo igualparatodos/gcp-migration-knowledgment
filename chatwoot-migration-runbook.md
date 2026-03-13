@@ -62,6 +62,9 @@ gcloud config list
 
 ### 3. Stop AWS Chatwoot Instance
 
+#### 3.1 Stop lambda
+https://sa-east-1.console.aws.amazon.com/lambda/home?region=sa-east-1#/functions/n8n-waha-messages-prod?subtab=triggers&tab=configure
+
 **CRITICAL**: Stop the AWS instance to prevent data changes during migration.
 
 ```bash
