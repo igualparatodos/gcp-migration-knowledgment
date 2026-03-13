@@ -116,7 +116,7 @@ sudo /opt/chatwoot/migrate-db-rds-to-cloudsql.sh
 - If you see `pg_restore: warning: errors ignored on restore: XXX` - these are typically duplicate index warnings and are **safe to ignore**
 - If pg_dump/pg_restore commands not found: PostgreSQL 15 client tools should already be installed
 
-### 6. Migrate Storage (S3 → GCS) (DRY-RUN)
+### 6. Migrate Storage (S3 → GCS) — Async (DRY-RUN)
 
 **On GCE VM:**
 
@@ -147,6 +147,14 @@ ps aux | grep gsutil
 
 **Re-run sync anytime:**
 The script is idempotent - run it multiple times for incremental updates without re-copying existing files.
+
+> Note (Async): This step is long-running (3–5 hours). You can start it and move forward with the next steps (service verification, DNS planning, etc.). If desired, run it in the background:
+
+```bash
+# Start sync detached and log to file
+nohup sudo /opt/chatwoot/sync-s3-to-gcs.sh > /opt/chatwoot/s3-to-gcs-sync.log 2>&1 &
+tail -f /opt/chatwoot/s3-to-gcs-sync.log
+```
 
 ### 7. Restart and verify Services (DRY-RUN)
 
