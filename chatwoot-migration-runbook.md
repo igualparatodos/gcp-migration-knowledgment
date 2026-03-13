@@ -98,6 +98,8 @@ gcloud compute ssh chatwoot \
 sudo /opt/chatwoot/migrate-db-rds-to-cloudsql.sh
 ```
 
+- You can move to step 6 and run in parallel while dump is running.
+
 **What this does:**
 1. Dumps PostgreSQL from AWS RDS (`chatwoot_production` database)
 2. Restores to GCP CloudSQL (`chatwoot` database)
