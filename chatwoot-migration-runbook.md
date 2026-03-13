@@ -148,11 +148,14 @@ ps aux | grep gsutil
 **Re-run sync anytime:**
 The script is idempotent - run it multiple times for incremental updates without re-copying existing files.
 
-### 7. Verify Services (DRY-RUN)
+### 7. Restart and verify Services (DRY-RUN)
 
 **On GCE VM:**
 
 ```bash
+# Restart service
+sudo docker compose -f /opt/chatwoot/docker-compose.yaml restart
+
 # Check container status
 sudo docker compose -f /opt/chatwoot/docker-compose.yaml ps
 
